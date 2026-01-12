@@ -2,11 +2,11 @@ from js import Response, fetch, JSON, Headers
 
 async def on_fetch(request, env):
     """
-    Cloudflare Python Worker Entry Point
+    Cloudflare Python Worker Entry Point - Pure Logic
     """
     # CORS Headers
     headers = Headers.new()
-    headers.append("Access-Control-Allow-Origin", "*") # In production, restrict this
+    headers.append("Access-Control-Allow-Origin", "*")
     headers.append("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     headers.append("Access-Control-Allow-Headers", "Content-Type")
 
@@ -16,24 +16,26 @@ async def on_fetch(request, env):
 
     url = request.url
     
-    # Simple Router
+    # Health Check
     if url.endswith("/api/health"):
-        return Response.new("OK", headers=headers)
+        return Response.new("System Online", headers=headers)
         
-    elif url.endswith("/api/analyze"):
+    # Data Ingestion Endpoint
+    elif url.endswith("/api/submit"):
         if request.method != "POST":
             return Response.new("Method Not Allowed", status=405, headers=headers)
         
         try:
             req_json = await request.json()
-            # TODO: Call Gemini API using env.GEMINI_API_KEY
-            # For now, return a mock response to prove connectivity
+            # In a real scenario, we would validate and store this data
+            # For now, we just acknowledge receipt
             
-            mock_response = {
+            response_data = {
                 "status": "success",
-                "analysis": "[BACKEND GENERATED] Analysis complete based on secure logic."
+                "message": "Data received",
+                "timestamp": "server-time" 
             }
-            return Response.new(JSON.stringify(mock_response), headers=headers)
+            return Response.new(JSON.stringify(response_data), headers=headers)
         except Exception as e:
             return Response.new(f"Error: {str(e)}", status=500, headers=headers)
 
