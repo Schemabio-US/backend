@@ -6,7 +6,7 @@ async def on_fetch(request, env):
     """
     # CORS Headers
     headers = Headers.new()
-    headers.append("Access-Control-Allow-Origin", "*")
+    headers.append("Access-Control-Allow-Origin", "https://schemabio.com")
     headers.append("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     headers.append("Access-Control-Allow-Headers", "Content-Type")
 
