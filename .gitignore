@@ -1,1 +1,19 @@
+# Cloudflare Workers Secrets (CRITICAL)
+.dev.vars
+.env
+wrangler.secret.toml
+
+# Python / Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.idea/
+.vscode/
+*.log
+
+# Project Context (Strictly Ignored)
 CONTEXT.md
+PROJECT_CONTEXT.md
