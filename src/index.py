@@ -50,12 +50,13 @@ async def on_fetch(request, env):
             # Execute
             await stmt.bind(email, interest, primary_challenge, source, user_agent).run()
             
+            import json
             response_data = {
                 "status": "success",
                 "message": "Data saved successfully",
                 "timestamp": "server-time" 
             }
-            return Response.new(JSON.stringify(response_data), headers=headers)
+            return Response.new(json.dumps(response_data), headers=headers)
         except Exception as e:
             # Enhanced Error Logging
             import traceback
