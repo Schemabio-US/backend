@@ -26,14 +26,16 @@ async def on_fetch(request, env):
             return Response.new("Method Not Allowed", status=405, headers=headers)
         
         try:
-            req_json = await request.json()
+            req_js = await request.json()
+            # Convert JS Object to Python Dictionary to use .get()
+            req_data = req_js.to_py()
             
             # Extract data safely
-            email = req_json.get("email")
-            interest = req_json.get("interest")
-            primary_challenge = req_json.get("primary_challenge")
-            source = req_json.get("source", "unknown")
-            user_agent = req_json.get("userAgent", request.headers.get("User-Agent"))
+            email = req_data.get("email")
+            interest = req_data.get("interest")
+            primary_challenge = req_data.get("primary_challenge")
+            source = req_data.get("source", "unknown")
+            user_agent = req_data.get("userAgent", request.headers.get("User-Agent"))
 
             if not email:
                  return Response.new(JSON.stringify({"error": "Email is required"}), status=400, headers=headers)
@@ -55,6 +57,10 @@ async def on_fetch(request, env):
             }
             return Response.new(JSON.stringify(response_data), headers=headers)
         except Exception as e:
+            # Enhanced Error Logging
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Server Error: {error_details}") # Log to Cloudflare Dashboard
             return Response.new(f"Error: {str(e)}", status=500, headers=headers)
 
     return Response.new("Not Found", status=404, headers=headers)
