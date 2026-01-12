@@ -27,12 +27,30 @@ async def on_fetch(request, env):
         
         try:
             req_json = await request.json()
-            # In a real scenario, we would validate and store this data
-            # For now, we just acknowledge receipt
+            
+            # Extract data safely
+            email = req_json.get("email")
+            interest = req_json.get("interest")
+            primary_challenge = req_json.get("primary_challenge")
+            source = req_json.get("source", "unknown")
+            user_agent = req_json.get("userAgent", request.headers.get("User-Agent"))
+
+            if not email:
+                 return Response.new(JSON.stringify({"error": "Email is required"}), status=400, headers=headers)
+
+            # Insert into D1 Database
+            # Python Workers access bindings via `env`
+            stmt = env.DB.prepare("""
+                INSERT INTO leads (email, interest, primary_challenge, source, user_agent) 
+                VALUES (?, ?, ?, ?, ?)
+            """)
+            
+            # Execute
+            await stmt.bind(email, interest, primary_challenge, source, user_agent).run()
             
             response_data = {
                 "status": "success",
-                "message": "Data received",
+                "message": "Data saved successfully",
                 "timestamp": "server-time" 
             }
             return Response.new(JSON.stringify(response_data), headers=headers)
