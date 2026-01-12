@@ -30,12 +30,12 @@ async def on_fetch(request, env):
             # Convert JS Object to Python Dictionary to use .get()
             req_data = req_js.to_py()
             
-            # Extract data safely
+            # Extract data safely with explicit defaults to prevent D1 'undefined' error
             email = req_data.get("email")
-            interest = req_data.get("interest")
-            primary_challenge = req_data.get("primary_challenge")
-            source = req_data.get("source", "unknown")
-            user_agent = req_data.get("userAgent", request.headers.get("User-Agent"))
+            interest = req_data.get("interest") or None
+            primary_challenge = req_data.get("primary_challenge") or None
+            source = req_data.get("source") or "unknown"
+            user_agent = req_data.get("userAgent") or request.headers.get("User-Agent") or None
 
             if not email:
                  return Response.new(JSON.stringify({"error": "Email is required"}), status=400, headers=headers)
