@@ -30,20 +30,20 @@ async def on_fetch(request, env):
             # Convert to Python dict for stable access
             req_data = req_js.to_py() if hasattr(req_js, "to_py") else dict(req_js)
             
-            # Data Normalization: Force missing keys to None (Python)
-            # D1 driver in Python workers expects Python None for NULL values
+            # Rigorous field extraction with fallback to empty string
+            # This ensures no JavaScript 'undefined' value is passed to D1
             email = req_data.get("email")
-            interest = req_data.get("interest")
-            primary_challenge = req_data.get("primary_challenge")
-            source = req_data.get("source", "landing_page_mvp")
-            user_agent = req_data.get("userAgent", request.headers.get("User-Agent"))
-
-            # Diagnostic Logging (Viewable in Wrangler Tail / CF Dashboard)
-            print(f"DEBUG: email={email} ({type(email)})")
-            print(f"DEBUG: interest={interest} ({type(interest)})")
-            print(f"DEBUG: challenge={primary_challenge} ({type(primary_challenge)})")
-            print(f"DEBUG: source={source} ({type(source)})")
-            print(f"DEBUG: ua={user_agent} ({type(user_agent)})")
+            interest = req_data.get("interest") if req_data.get("interest") is not None else ""
+            primary_challenge = req_data.get("primary_challenge") if req_data.get("primary_challenge") is not None else ""
+            source = req_data.get("source") if req_data.get("source") is not None else "landing_page_mvp"
+            
+            # UA Handling
+            ua_val = req_data.get("userAgent")
+            if ua_val is None:
+                ua_val = request.headers.get("User-Agent")
+            if ua_val is None:
+                ua_val = ""
+            user_agent = str(ua_val)
 
             if not email:
                  return Response.new(JSON.stringify({"error": "Email is required"}), status=400, headers=headers)
@@ -54,7 +54,7 @@ async def on_fetch(request, env):
                 VALUES (?, ?, ?, ?, ?)
             """)
             
-            # Explicitly bind as a tuple to ensure count and types
+            # Passing 5 guaranteed string objects
             await stmt.bind(email, interest, primary_challenge, source, user_agent).run()
             
             import json
