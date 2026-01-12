@@ -27,45 +27,43 @@ async def on_fetch(request, env):
         
         try:
             req_js = await request.json()
-            # Convert JS Object to Python Dictionary to use .get()
-            req_data = req_js.to_py()
+            # Convert to Python dict for stable access
+            req_data = req_js.to_py() if hasattr(req_js, "to_py") else dict(req_js)
             
-            # Extract data safely - Use empty strings to avoid D1 type errors with None/undefined
+            # Data Normalization: Force missing keys to None (Python)
+            # D1 driver in Python workers expects Python None for NULL values
             email = req_data.get("email")
-            interest = req_data.get("interest", "")
-            primary_challenge = req_data.get("primary_challenge", "")
-            source = req_data.get("source", "unknown")
-            
-            # For user_agent, prioritize payload, then header, then empty string
-            ua_payload = req_data.get("userAgent")
-            ua_header = request.headers.get("User-Agent")
-            user_agent = ua_payload if ua_payload else (ua_header if ua_header else "")
+            interest = req_data.get("interest")
+            primary_challenge = req_data.get("primary_challenge")
+            source = req_data.get("source", "landing_page_mvp")
+            user_agent = req_data.get("userAgent", request.headers.get("User-Agent"))
+
+            # Diagnostic Logging (Viewable in Wrangler Tail / CF Dashboard)
+            print(f"DEBUG: email={email} ({type(email)})")
+            print(f"DEBUG: interest={interest} ({type(interest)})")
+            print(f"DEBUG: challenge={primary_challenge} ({type(primary_challenge)})")
+            print(f"DEBUG: source={source} ({type(source)})")
+            print(f"DEBUG: ua={user_agent} ({type(user_agent)})")
 
             if not email:
                  return Response.new(JSON.stringify({"error": "Email is required"}), status=400, headers=headers)
 
             # Insert into D1 Database
-            # Python Workers access bindings via `env`
             stmt = env.DB.prepare("""
                 INSERT INTO leads (email, interest, primary_challenge, source, user_agent) 
                 VALUES (?, ?, ?, ?, ?)
             """)
             
-            # Execute
+            # Explicitly bind as a tuple to ensure count and types
             await stmt.bind(email, interest, primary_challenge, source, user_agent).run()
             
             import json
-            response_data = {
-                "status": "success",
-                "message": "Data saved successfully",
-                "timestamp": "server-time" 
-            }
+            response_data = {"status": "success", "message": "Data saved"}
             return Response.new(json.dumps(response_data), headers=headers)
         except Exception as e:
-            # Enhanced Error Logging
             import traceback
-            error_details = traceback.format_exc()
-            print(f"Server Error: {error_details}") # Log to Cloudflare Dashboard
+            error_msg = traceback.format_exc()
+            print(f"CRITICAL_ERROR: {error_msg}")
             return Response.new(f"Error: {str(e)}", status=500, headers=headers)
 
     # Admin Endpoint: Fetch Leads
